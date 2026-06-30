@@ -155,7 +155,7 @@ git commit -m "chore: 更新immortalwrt源码指针"
 WRT_IPK_TARGETS="package/luci-app-timecontrol,feeds/custom_feed/luci-app-mosdns" ./scripts/build-ipk.sh x64_immwrt
 ```
 
-脚本会先复用 `./build.sh <device> debug` 准备 `action_build/`，然后只对指定包执行 `make package/.../compile`。产物输出到 `ipk_artifacts/<device>/`。
+脚本会先复用 `./build.sh <device> debug` 准备 `action_build/`，再执行 OpenWrt 原生 `make tools/install` 与 `make toolchain/install` 预热 host 工具和工具链，最后只对指定包执行 `make package/.../compile`。产物输出到 `ipk_artifacts/<device>/`。
 
 仓库同时新增了 GitHub Actions 工作流 `Release IPK`，可在 Actions 页面手动填写 `model`、`package_targets` 和可选的 `artifact_patterns`，然后把生成的 `.ipk` 作为 GitHub Release 附件发布。详细说明见 [独立 IPK 发布文档](docs/ipk-release.md)。
 

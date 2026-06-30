@@ -132,6 +132,26 @@ ensure_action_build_ready() {
     bash "$REPO_ROOT/build.sh" "$device" debug
 }
 
+run_openwrt_make() {
+    local target="$1"
+
+    make "$target" -j"$(($(nproc) + 1))" || make "$target" -j1 V=s
+}
+
+prepare_build_dependencies() {
+    local build_dir="$1"
+
+    pushd "$build_dir" >/dev/null
+
+    echo "Preparing OpenWrt host tools..."
+    run_openwrt_make tools/install
+
+    echo "Preparing OpenWrt toolchain..."
+    run_openwrt_make toolchain/install
+
+    popd >/dev/null
+}
+
 list_ipk_files() {
     local build_dir="$1"
 
@@ -261,6 +281,7 @@ main() {
     stamp_file=$(mktemp)
     trap 'rm -f "$stamp_file"' RETURN
 
+    prepare_build_dependencies "$build_dir"
     compile_targets "$build_dir" "${targets[@]}"
     copy_matching_ipks "$build_dir" "$artifact_dir" "$stamp_file" "${patterns[@]}"
     write_metadata_files "$artifact_dir" "$device" "${targets[@]}"

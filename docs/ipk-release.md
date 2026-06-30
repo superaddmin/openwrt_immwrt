@@ -36,7 +36,14 @@ WRT_IPK_TARGETS="package/luci-app-timecontrol,feeds/custom_feed/luci-app-mosdns"
 ./build.sh <device> debug
 ```
 
-完成 `action_build/`、feeds 和 `.config` 准备，再只对指定包执行：
+完成 `action_build/`、feeds 和 `.config` 准备，然后预热 OpenWrt host 工具和工具链：
+
+```bash
+make tools/install
+make toolchain/install
+```
+
+最后只对指定包执行：
 
 ```bash
 make <target>/download

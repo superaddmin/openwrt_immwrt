@@ -31,7 +31,89 @@ assert_true() {
     fi
 }
 
-main() {
+assert_file_contains() {
+    local file="$1"
+    local expected="$2"
+    local message="$3"
+
+    if ! grep -Fxq "$expected" "$file"; then
+        echo "ASSERT_FILE_CONTAINS failed: $message" >&2
+        echo "  missing line: $expected" >&2
+        echo "  file content:" >&2
+        sed 's/^/    /' "$file" >&2
+        exit 1
+    fi
+}
+
+test_main_prepares_dependencies_before_compiling() {
+    local tmp_dir
+    local test_device
+    local test_artifact_dir
+
+    tmp_dir=$(mktemp -d)
+    test_device="test-ipk-device-$$"
+    test_artifact_dir="$REPO_ROOT/ipk_artifacts/$test_device"
+
+    (
+        set -euo pipefail
+
+        local log_file="$tmp_dir/calls.log"
+
+        ensure_action_build_ready() {
+            echo "ensure_action_build_ready:$1" >>"$log_file"
+            mkdir -p "$REPO_ROOT/action_build/bin"
+        }
+
+        prepare_build_dependencies() {
+            echo "prepare_build_dependencies:$1" >>"$log_file"
+        }
+
+        compile_targets() {
+            local build_dir="$1"
+            shift
+            echo "compile_targets:$build_dir:$*" >>"$log_file"
+        }
+
+        copy_matching_ipks() {
+            local build_dir="$1"
+            local artifact_dir="$2"
+            local stamp_file="$3"
+            shift 3
+            echo "copy_matching_ipks:$build_dir:$artifact_dir:$stamp_file:$*" >>"$log_file"
+            touch "$artifact_dir/luci-app-timecontrol_1_all.ipk"
+        }
+
+        write_metadata_files() {
+            echo "write_metadata_files:$*" >>"$log_file"
+        }
+
+        WRT_IPK_TARGETS=""
+        WRT_IPK_ARTIFACT_PATTERNS="luci-app-timecontrol_*.ipk"
+        main "$test_device" luci-app-timecontrol
+
+        assert_file_contains "$log_file" "ensure_action_build_ready:$test_device" \
+            "main should prepare action_build first"
+        assert_file_contains "$log_file" "prepare_build_dependencies:$REPO_ROOT/action_build" \
+            "main should prepare OpenWrt host tools and toolchain before package compile"
+        assert_file_contains "$log_file" "compile_targets:$REPO_ROOT/action_build:package/luci-app-timecontrol" \
+            "main should compile normalized package targets"
+
+        local sequence
+        sequence=$(awk '
+            /^prepare_build_dependencies:/ {prepare = NR}
+            /^compile_targets:/ {compile = NR}
+            END {if (prepare > 0 && compile > 0 && prepare < compile) print "ok"}
+        ' "$log_file")
+
+        assert_eq "ok" "$sequence" \
+            "OpenWrt build dependencies should be prepared before compiling package targets"
+    )
+
+    rm -rf "$tmp_dir"
+    rm -rf "$test_artifact_dir"
+}
+
+run_tests() {
     local targets=()
 
     assert_eq "package/luci-app-timecontrol" \
@@ -95,7 +177,9 @@ main() {
         exit 1
     fi
 
+    test_main_prepares_dependencies_before_compiling
+
     echo "build-ipk tests passed"
 }
 
-main "$@"
+run_tests "$@"
