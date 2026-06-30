@@ -29,7 +29,7 @@ sync_with_tar() {
     while IFS= read -r item; do
         [[ -n "$item" ]] || continue
         tar_args+=(--exclude="$item")
-    done < <(source_sync_excludes)
+    done < <(source_sync_tar_excludes)
 
     tar "${tar_args[@]}" -C "$source_abs" -cf - . | tar -C "$build_copy_path" -xf -
 }
@@ -70,7 +70,7 @@ sync_with_rsync() {
     while IFS= read -r item; do
         [[ -n "$item" ]] || continue
         rsync_args+=(--exclude "$item")
-    done < <(source_sync_excludes)
+    done < <(source_sync_rsync_excludes)
 
     rsync "${rsync_args[@]}" "$source_abs/" "$build_copy_path/"
 }

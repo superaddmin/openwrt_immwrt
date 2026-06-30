@@ -106,3 +106,21 @@ package/feeds
 .config.old
 EOF
 }
+
+source_sync_rsync_excludes() {
+    local item
+
+    while IFS= read -r item; do
+        [[ -n "$item" ]] || continue
+        printf '/%s\n' "$item"
+    done < <(source_sync_excludes)
+}
+
+source_sync_tar_excludes() {
+    local item
+
+    while IFS= read -r item; do
+        [[ -n "$item" ]] || continue
+        printf './%s\n' "$item"
+    done < <(source_sync_excludes)
+}
