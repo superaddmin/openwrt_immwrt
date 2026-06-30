@@ -1,0 +1,159 @@
+name: Release IPK
+run-name: Release IPK - ${{ inputs.model }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        required: true
+        description: Device Model
+        type: choice
+        default: jdcloud_ipq60xx_immwrt
+        options:
+          - aliyun_ap8220_immwrt
+          - aliyun_ap8220_libwrt
+          - cmcc_rax3000m_immwrt
+          - gemtek_w1701k_immwrt
+          - jdcloud_ax6000_immwrt
+          - jdcloud_ipq60xx_immwrt
+          - jdcloud_ipq60xx_libwrt
+          - link_nn6000v2_immwrt
+          - linksys_mx4x00_immwrt
+          - n1_immwrt
+          - qihoo_360v6_immwrt
+          - redmi_ax5_immwrt
+          - redmi_ax6_immwrt
+          - redmi_ax6_libwrt
+          - redmi_ax6000_immwrt21
+          - zn_m2_immwrt
+          - zn_m2_libwrt
+          - x64_immwrt
+      package_targets:
+        required: true
+        description: Package targets, separated by commas or newlines
+        type: string
+      artifact_patterns:
+        required: false
+        description: Optional .ipk artifact glob patterns, separated by commas or newlines
+        type: string
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+permissions:
+  contents: write
+
+jobs:
+  release-ipk:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Build System Setup
+        run: |
+          sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+          sudo -E apt -yqq install dos2unix
+          sudo -E apt -yqq install libfuse-dev
+          sudo -E apt -yqq autoremove --purge
+          sudo -E apt -yqq autoclean
+          sudo -E apt -yqq clean
+          sudo -E systemctl daemon-reload
+
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Set Build Date and Timezone
+        run: |
+          sudo -E timedatectl set-timezone "Asia/Shanghai"
+          export BUILD_DATE=$(TZ=UTC-8 date +"%y.%m.%d_%H.%M.%S")
+          echo "BUILD_DATE=$BUILD_DATE" >> "$GITHUB_ENV"
+          export BUILD_SRC=$(awk -F"=" '/REPO_URL/ {print $NF}' "./wrt_core/compilecfg/${{ inputs.model }}.ini")
+          echo "BUILD_SRC=$BUILD_SRC" >> "$GITHUB_ENV"
+
+      - name: Resolve Source
+        id: source
+        shell: bash
+        run: |
+          ini="./wrt_core/compilecfg/${{ inputs.model }}.ini"
+          source_id=$(awk -F"=" '$1 == "BUILD_DIR" {print $2; exit}' "$ini")
+          if [ -z "$source_id" ]; then
+            echo "BUILD_DIR not found in $ini" >&2
+            exit 1
+          fi
+          echo "SOURCE_ID=$source_id" >> "$GITHUB_ENV"
+          echo "source_id=$source_id" >> "$GITHUB_OUTPUT"
+
+      - name: Init Target Source Submodule
+        run: |
+          git submodule sync -- "sources/${{ steps.source.outputs.source_id }}"
+          git submodule update --init --depth 1 -- "sources/${{ steps.source.outputs.source_id }}"
+
+      - name: Validate Source
+        run: |
+          ./scripts/validate-source.sh "${{ inputs.model }}"
+          echo "SOURCE_LOCK=action_build/.source-lock" >> "$GITHUB_ENV"
+
+      - name: Export Source Commit
+        id: source_commit
+        run: |
+          source_commit=$(git -C "sources/${SOURCE_ID}" rev-parse HEAD)
+          echo "SOURCE_COMMIT=$source_commit" >> "$GITHUB_ENV"
+          echo "source_commit=$source_commit" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Dependencies
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ./action_build/.ccache
+            ./action_build/staging_dir
+          key: ${{ matrix.os }}-${{ inputs.model }}-ipk-${{ steps.source_commit.outputs.source_commit }}-${{ hashFiles('wrt_core/**/*.sh', 'wrt_core/compilecfg/*.ini', 'wrt_core/deconfig/*.config', 'metadata/external-dependencies.tsv', 'scripts/*.sh') }}-${{ env.BUILD_DATE }}
+          restore-keys: |
+            ${{ matrix.os }}-${{ inputs.model }}-ipk-${{ steps.source_commit.outputs.source_commit }}-
+
+      - name: Refresh the cache
+        run: |
+          if [ -d "./action_build/staging_dir" ]; then
+            find "./action_build/staging_dir" -type d -name "stamp" -not -path "*target*" | while read -r dir; do
+                find "$dir" -type f -exec touch {} +
+            done
+          fi
+
+      - name: Build IPK Packages
+        env:
+          WRT_IPK_TARGETS: ${{ inputs.package_targets }}
+          WRT_IPK_ARTIFACT_PATTERNS: ${{ inputs.artifact_patterns }}
+        run: |
+          ./scripts/build-ipk.sh "${{ inputs.model }}"
+
+      - name: Validate IPK Output
+        run: |
+          artifact_dir="./ipk_artifacts/${{ inputs.model }}"
+          test -d "$artifact_dir"
+          count=$(find "$artifact_dir" -maxdepth 1 -type f -name "*.ipk" | wc -l)
+          echo "IPK output count: $count"
+          test "$count" -gt 0
+
+      - name: Prepare Release Body
+        shell: bash
+        run: |
+          artifact_dir="./ipk_artifacts/${{ inputs.model }}"
+          echo "独立 IPK 自动发布" > release_body.txt
+          echo "设备：${{ inputs.model }}" >> release_body.txt
+          echo "源码：${{ env.BUILD_SRC }}" >> release_body.txt
+          echo "源码Commit：${{ env.SOURCE_COMMIT }}" >> release_body.txt
+          echo "包目标：" >> release_body.txt
+          sed 's/^/- /' "$artifact_dir/package-targets.txt" >> release_body.txt
+          echo "产物：" >> release_body.txt
+          find "$artifact_dir" -maxdepth 1 -type f -name "*.ipk" -printf '%f\n' | sort | sed 's/^/- /' >> release_body.txt
+
+      - name: Release IPK
+        uses: softprops/action-gh-release@v3.0.1
+        with:
+          tag_name: ${{ env.BUILD_DATE }}_${{ inputs.model }}_ipk
+          files: ./ipk_artifacts/${{ inputs.model }}/*
+          body_path: ./release_body.txt

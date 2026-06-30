@@ -11,6 +11,7 @@
 | [设备适配.md](设备适配.md) | 17 款设备配置详情、6 个 source submodule 映射、新增设备指南 | 添加新设备、了解设备差异的用户 |
 | [模块脚本.md](模块脚本.md) | 60+ 定制函数参考手册,按模块分组 | 修改/扩展现有定制的开发者 |
 | [source-management.md](source-management.md) | submodule 初始化、源码修改、补丁导出、锁定、校验、回滚 | 需要修改或管理上游源码的开发者 |
+| [ipk-release.md](ipk-release.md) | 独立 `.ipk` 构建与 GitHub Release 发布 | 需要发布单个软件包的开发者 |
 
 ## 阅读建议
 
@@ -19,6 +20,7 @@
 - **想加新设备**:读 [设备适配.md](设备适配.md) 的"新增设备指南"
 - **想改定制逻辑**:读 [模块脚本.md](模块脚本.md) 找到对应函数,在 [update.sh](../wrt_core/update.sh) 的 `main()` 中调整
 - **想改上游源码**:读 [source-management.md](source-management.md) 了解 submodule 修改与指针更新流程
+- **想只发布单个包**:读 [ipk-release.md](ipk-release.md) 了解 `.ipk` 构建目标和 Release 工作流
 - **排查编译失败**:读 [构建流程.md](构建流程.md) 的"故障排查"章节
 
 ## 架构演进说明
@@ -41,5 +43,6 @@
 | 新增/修改 update.sh 步骤 | 模块脚本.md + 构建流程.md |
 | 修改 build.sh 流程 | 构建流程.md |
 | 修改项目结构 / 源码管理机制 | 技术架构.md + source-management.md + 主 README |
+| 新增/修改独立 `.ipk` 发布链路 | ipk-release.md + 构建流程.md + 技术架构.md + 主 README |
 | 新增外部依赖 URL | metadata/external-dependencies.tsv(validate-source 强制) |
 | 新增/修改 scripts/ 脚本 | source-management.md + 技术架构.md |

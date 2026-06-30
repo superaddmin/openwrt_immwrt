@@ -12,6 +12,7 @@
 - [编译模式](#编译模式)
 - [项目结构](#项目结构)
 - [配置系统](#配置系统)
+- [独立 IPK 发布](#独立-ipk-发布)
 - [定制特性](#定制特性)
 - [OAF 应用过滤使用说明](#oaf-应用过滤使用说明)
 - [常见问题](#常见问题)
@@ -139,6 +140,27 @@ git commit -m "chore: 更新immortalwrt源码指针"
 
 ---
 
+## 独立 IPK 发布
+
+如果只想构建并发布单个 `.ipk` 包，而不是整机固件，可以使用：
+
+```bash
+./scripts/build-ipk.sh x64_immwrt luci-app-timecontrol
+./scripts/build-ipk.sh jdcloud_ipq60xx_immwrt feeds/custom_feed/lucky
+```
+
+也可以通过环境变量传入多个目标：
+
+```bash
+WRT_IPK_TARGETS="package/luci-app-timecontrol,feeds/custom_feed/luci-app-mosdns" ./scripts/build-ipk.sh x64_immwrt
+```
+
+脚本会先复用 `./build.sh <device> debug` 准备 `action_build/`，然后只对指定包执行 `make package/.../compile`。产物输出到 `ipk_artifacts/<device>/`。
+
+仓库同时新增了 GitHub Actions 工作流 `Release IPK`，可在 Actions 页面手动填写 `model`、`package_targets` 和可选的 `artifact_patterns`，然后把生成的 `.ipk` 作为 GitHub Release 附件发布。详细说明见 [独立 IPK 发布文档](docs/ipk-release.md)。
+
+---
+
 ## 项目结构
 
 ```
@@ -154,7 +176,8 @@ openwrt_immwrt/
 │   ├── libwrt-k612/
 │   ├── imm-mt798x/
 │   └── airoha-wrt/
-├── scripts/                  # 源码校验、构建副本准备、补丁导出和锁文件脚本
+├── scripts/                  # 源码校验、构建副本准备、补丁导出、锁文件与 .ipk 构建脚本
+│   └── build-ipk.sh          # 独立 .ipk 包构建入口
 ├── metadata/                 # 外部依赖清单与源码锁定信息
 ├── wrt_core/                 # 核心模块目录
 │   ├── update.sh             # 定制流程主编排(约 60 个步骤)
@@ -177,6 +200,7 @@ openwrt_immwrt/
 │       └── openssl/          # OpenSSL 完整补丁集
 ├── docs/                     # 技术文档
 ├── action_build/             # 构建副本,脚本自动生成(gitignore)
+├── ipk_artifacts/            # 独立 .ipk 发布产物(gitignore)
 └── firmware/                 # 编译产物输出(gitignore)
 ```
 
@@ -268,6 +292,7 @@ A: 在仓库 Actions 页面选择 `Build WRT` 工作流,手动触发(workflow_di
 - [设备适配](docs/设备适配.md) — 17 款设备配置详情与平台映射
 - [模块脚本](docs/模块脚本.md) — 60+ 定制函数参考手册
 - [上游源码管理](docs/source-management.md) — submodule 初始化、源码修改、补丁导出、锁定和回滚流程
+- [独立 IPK 发布](docs/ipk-release.md) — 单包构建、产物筛选与 GitHub Release 发布流程
 
 ---
 
