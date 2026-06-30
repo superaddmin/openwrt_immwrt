@@ -67,6 +67,11 @@ jobs:
           submodules: false
           fetch-depth: 1
 
+      - name: Prepare Script Permissions
+        run: |
+          chmod +x ./build.sh
+          find ./scripts ./wrt_core -type f -name "*.sh" -exec chmod +x {} +
+
       - name: Set Build Date and Timezone
         run: |
           sudo -E timedatectl set-timezone "Asia/Shanghai"
