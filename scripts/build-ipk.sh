@@ -40,7 +40,7 @@ split_to_lines() {
         return 0
     fi
 
-    printf '%s' "$raw" | tr ',;	 ' '\n\n\n\n'
+    printf '%s\n' "$raw" | tr ',;	 ' '\n\n\n\n'
 }
 
 normalize_package_target() {

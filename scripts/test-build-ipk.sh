@@ -32,6 +32,8 @@ assert_true() {
 }
 
 main() {
+    local targets=()
+
     assert_eq "package/luci-app-timecontrol" \
         "$(normalize_package_target "luci-app-timecontrol")" \
         "plain package names should normalize to package/<name>"
@@ -47,6 +49,30 @@ main() {
     assert_eq "package/feeds/custom_feed/lucky" \
         "$(normalize_package_target "package/feeds/custom_feed/lucky")" \
         "package/feeds targets should stay unchanged"
+
+    WRT_IPK_TARGETS=""
+    collect_targets targets "luci-app-timecontrol"
+    assert_eq "1" "${#targets[@]}" \
+        "CLI package targets should be collected"
+    assert_eq "package/luci-app-timecontrol" "${targets[0]}" \
+        "CLI package targets should be normalized"
+
+    WRT_IPK_TARGETS="luci-app-timecontrol,feeds/custom_feed/lucky"
+    collect_targets targets
+    assert_eq "2" "${#targets[@]}" \
+        "environment package targets should be collected"
+    assert_eq "package/luci-app-timecontrol" "${targets[0]}" \
+        "first environment package target should be normalized"
+    assert_eq "package/feeds/custom_feed/lucky" "${targets[1]}" \
+        "second environment package target should be normalized"
+
+    local patterns=()
+    WRT_IPK_ARTIFACT_PATTERNS="*/luci-app-timecontrol_*.ipk"
+    collect_patterns patterns
+    assert_eq "1" "${#patterns[@]}" \
+        "single environment artifact pattern should be collected"
+    assert_eq "*/luci-app-timecontrol_*.ipk" "${patterns[0]}" \
+        "environment artifact pattern should stay unchanged"
 
     local tmp_dir
     tmp_dir=$(mktemp -d)
