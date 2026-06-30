@@ -129,7 +129,7 @@ ensure_action_build_ready() {
     local device="$1"
 
     echo "Preparing action_build for $device via debug build..."
-    "$REPO_ROOT/build.sh" "$device" debug
+    bash "$REPO_ROOT/build.sh" "$device" debug
 }
 
 list_ipk_files() {
