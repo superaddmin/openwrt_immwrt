@@ -1,0 +1,6 @@
+device=x64_immwrt
+source_path=sources/immortalwrt
+source_url=https://github.com/immortalwrt/immortalwrt.git
+source_branch=master
+source_commit=512e9a60b39f013f174f7ab3e2df2bc276d052b5
+locked_at_utc=2026-06-30T07:58:25Z

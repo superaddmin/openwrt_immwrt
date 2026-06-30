@@ -89,3 +89,20 @@ write_source_lock() {
         printf 'locked_at_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     } >"$output_file"
 }
+
+source_sync_excludes() {
+    cat <<'EOF'
+.git
+.ccache
+bin
+build_dir
+dl
+logs
+staging_dir
+tmp
+feeds
+package/feeds
+.config
+.config.old
+EOF
+}
