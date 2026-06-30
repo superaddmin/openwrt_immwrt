@@ -3,7 +3,7 @@
 > 基于 ImmortalWRT / OpenWRT 的多设备定制固件自动化编译框架
 > 作者:**superaddmin** · 仓库:[github.com/superaddmin/openwrt_immwrt](https://github.com/superaddmin/openwrt_immwrt)
 
-本项目采用**源码仓库 + 定制脚本 + 配置/补丁**解耦的设计,构建时动态克隆上游 OpenWRT 源码,再通过模块化脚本对源码做原地补丁、包替换、feed 注入,最终编译出定制固件。支持本地编译、Docker 容器编译和 GitHub Actions CI 编译三种方式。
+本项目采用**上游源码 submodule + 定制脚本 + 配置/补丁**解耦的设计,构建时从 `sources/<source-id>` 同步本地源码副本到 `action_build/`,再通过模块化脚本对源码做原地补丁、包替换、feed 注入,最终编译出定制固件。支持本地编译、Docker 容器编译和 GitHub Actions CI 编译三种方式。
 
 ## 目录
 
@@ -38,6 +38,10 @@ sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_e
 ```bash
 git clone https://github.com/superaddmin/openwrt_immwrt.git
 cd openwrt_immwrt
+
+# 只初始化当前要编译设备需要的源码，例如 x64_immwrt 使用 sources/immortalwrt
+source_id=$(awk -F= '$1 == "BUILD_DIR" {print $2; exit}' wrt_core/compilecfg/x64_immwrt.ini)
+git submodule update --init --depth 1 "sources/$source_id"
 ```
 
 ### 3. 编译固件
@@ -51,6 +55,12 @@ cd openwrt_immwrt
 ```
 
 编译产物输出到 `firmware/` 目录。
+
+默认构建会把 `sources/<source-id>` 同步到 `action_build/` 后再编译。需要临时回到旧的动态 clone 流程时可使用:
+
+```bash
+WRT_USE_DYNAMIC_CLONE=1 ./build.sh x64_immwrt debug
+```
 
 ---
 
@@ -106,6 +116,29 @@ cd openwrt_immwrt
 
 ---
 
+## 本地源码修改
+
+上游主源码位于 `sources/<source-id>`。修改源码后,需要在对应 submodule 仓库内提交并推送到可被 GitHub Actions 访问的 fork 或镜像,然后在主仓库提交 submodule 指针。
+
+```bash
+cd sources/immortalwrt
+git status
+git commit -am "fix: 调整上游源码"
+git push
+
+cd ../..
+git add sources/immortalwrt
+git commit -m "chore: 更新immortalwrt源码指针"
+```
+
+导出本地源码差异补丁:
+
+```bash
+./scripts/export-source-patches.sh immortalwrt
+```
+
+---
+
 ## 项目结构
 
 ```
@@ -114,6 +147,15 @@ openwrt_immwrt/
 ├── .github/workflows/        # GitHub Actions CI 配置
 │   ├── build_wrt.yml         # 编译工作流(支持 17 设备可选触发)
 │   └── release_wrt.yml       # 发布工作流
+├── sources/                  # 上游主源码 submodule,按设备只初始化目标源码
+│   ├── immortalwrt/
+│   ├── imm-nss/
+│   ├── libwrt/
+│   ├── libwrt-k612/
+│   ├── imm-mt798x/
+│   └── airoha-wrt/
+├── scripts/                  # 源码校验、构建副本准备、补丁导出和锁文件脚本
+├── metadata/                 # 外部依赖清单与源码锁定信息
 ├── wrt_core/                 # 核心模块目录
 │   ├── update.sh             # 定制流程主编排(约 60 个步骤)
 │   ├── pre_clone_action.sh   # CI 预克隆脚本
@@ -134,6 +176,7 @@ openwrt_immwrt/
 │       ├── cpuusage/         # CPU 使用率采集脚本
 │       └── openssl/          # OpenSSL 完整补丁集
 ├── docs/                     # 技术文档
+├── action_build/             # 构建副本,脚本自动生成(gitignore)
 └── firmware/                 # 编译产物输出(gitignore)
 ```
 
@@ -151,7 +194,7 @@ openwrt_immwrt/
 |------|------|------|------|
 | `REPO_URL` | 是 | 上游 OpenWRT 源码仓库 URL | `https://github.com/immortalwrt/immortalwrt.git` |
 | `REPO_BRANCH` | 否 | 分支,默认 `main` | `master` |
-| `BUILD_DIR` | 是 | 本地构建目录名 | `imm-nss` |
+| `BUILD_DIR` | 是 | 对应 `sources/<source-id>` 的源码标识,构建时同步到 `action_build/` | `imm-nss` |
 | `COMMIT_HASH` | 否 | 固定到指定 commit,默认 `none` | `a1b2c3d` |
 | `BUILD_TARGET_SDK` | 否 | 容器编译用的 SDK 镜像,默认 `immortalwrt/sdk:openwrt-25.12` | — |
 
@@ -200,7 +243,10 @@ openwrt_immwrt/
 A: 框架内置 `git_retry`/`curl_retry`/`wget_retry`(指数退避,最多 5 次)。若仍失败,检查网络或配置代理。
 
 **Q: 如何切换上游源码版本?**
-A: 修改对应设备的 `compilecfg/<device>.ini` 中的 `REPO_URL`、`REPO_BRANCH` 或设置 `COMMIT_HASH`。
+A: 在对应 `sources/<source-id>` submodule 内切换分支或 commit,提交并推送后回到主仓库提交 submodule 指针。`compilecfg/<device>.ini` 中的 `REPO_URL`、`REPO_BRANCH`、`BUILD_DIR` 需要与 `.gitmodules` 保持一致。
+
+**Q: GitHub Actions 为什么找不到我本地改过的源码?**
+A: CI 只能访问已经推送到远端的 submodule commit。本地修改必须先在 submodule 仓库内提交并推送到可访问的 fork 或镜像,再提交主仓库中的 submodule 指针。
 
 **Q: 如何自定义预装软件包?**
 A: 编辑 `deconfig/<device>.config`(设备专属)或 `deconfig/compile_base.config`(所有设备通用)。`y`=编入固件,`m`=可按需安装,`n`=不编译。
@@ -221,6 +267,7 @@ A: 在仓库 Actions 页面选择 `Build WRT` 工作流,手动触发(workflow_di
 - [构建流程](docs/构建流程.md) — 编译全流程逐步解析
 - [设备适配](docs/设备适配.md) — 17 款设备配置详情与平台映射
 - [模块脚本](docs/模块脚本.md) — 60+ 定制函数参考手册
+- [上游源码管理](docs/source-management.md) — submodule 初始化、源码修改、补丁导出、锁定和回滚流程
 
 ---
 

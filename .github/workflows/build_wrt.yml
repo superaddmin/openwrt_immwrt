@@ -51,15 +51,45 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v7.0.0
+        with:
+          submodules: false
+          fetch-depth: 1
 
       - name: Set Build Date and Timezone
         run: |
           sudo -E timedatectl set-timezone "Asia/Shanghai"
           export BUILD_DATE=$(TZ=UTC-8 date +"%y.%m.%d_%H.%M.%S")
-          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
+          echo "BUILD_DATE=$BUILD_DATE" >> "$GITHUB_ENV"
 
-      - name: Pre Clone
-        run: ./wrt_core/pre_clone_action.sh ${{ inputs.model }}
+      - name: Resolve Source
+        id: source
+        shell: bash
+        run: |
+          ini="./wrt_core/compilecfg/${{ inputs.model }}.ini"
+          source_id=$(awk -F"=" '$1 == "BUILD_DIR" {print $2; exit}' "$ini")
+          if [ -z "$source_id" ]; then
+            echo "BUILD_DIR not found in $ini" >&2
+            exit 1
+          fi
+          echo "SOURCE_ID=$source_id" >> "$GITHUB_ENV"
+          echo "source_id=$source_id" >> "$GITHUB_OUTPUT"
+
+      - name: Init Target Source Submodule
+        run: |
+          git submodule sync -- "sources/${{ steps.source.outputs.source_id }}"
+          git submodule update --init --depth 1 -- "sources/${{ steps.source.outputs.source_id }}"
+
+      - name: Validate Source
+        run: |
+          ./scripts/validate-source.sh "${{ inputs.model }}"
+          echo "SOURCE_LOCK=action_build/.source-lock" >> "$GITHUB_ENV"
+
+      - name: Export Source Commit
+        id: source_commit
+        run: |
+          source_commit=$(git -C "sources/${SOURCE_ID}" rev-parse HEAD)
+          echo "SOURCE_COMMIT=$source_commit" >> "$GITHUB_ENV"
+          echo "source_commit=$source_commit" >> "$GITHUB_OUTPUT"
 
       - name: Cache Dependencies
         uses: actions/cache@v6.1.0
@@ -67,9 +97,9 @@ jobs:
           path: |
             ./action_build/.ccache
             ./action_build/staging_dir
-          key: ${{ matrix.os }}-${{ hashFiles('**/repo_flag') }}-${{ env.BUILD_DATE }}
+          key: ${{ matrix.os }}-${{ inputs.model }}-${{ steps.source_commit.outputs.source_commit }}-${{ hashFiles('wrt_core/**/*.sh', 'wrt_core/compilecfg/*.ini', 'wrt_core/deconfig/*.config', 'metadata/external-dependencies.tsv', 'scripts/*.sh') }}-${{ env.BUILD_DATE }}
           restore-keys: |
-            ${{ matrix.os }}-${{ hashFiles('**/repo_flag') }}-
+            ${{ matrix.os }}-${{ inputs.model }}-${{ steps.source_commit.outputs.source_commit }}-
 
       - name: Refresh the cache
         run: |
@@ -109,10 +139,17 @@ jobs:
       - name: Build Firmware
         run: ./build.sh ${{ inputs.model }}
 
+      - name: Validate Firmware Output
+        run: |
+          test -d ./firmware
+          count=$(find ./firmware -type f \( -name "*.manifest" -o -name "*.bin" -o -name "*.img.gz" -o -name "*.itb" -o -name "*.fip" -o -name "*.ubi" -o -name "*rootfs.tar.gz" \) | wc -l)
+          echo "Firmware output count: $count"
+          test "$count" -gt 0
+
       - name: Delete Old Cache
         run: |
           # 获取缓存列表并删除
-          gh cache list --key ${{ matrix.os }}-${{ hashFiles('**/repo_flag') }}- --json key --jq '.[] | .key' | while read -r key; do
+          gh cache list --key ${{ matrix.os }}-${{ inputs.model }}-${{ steps.source_commit.outputs.source_commit }}- --json key --jq '.[] | .key' | while read -r key; do
             gh cache delete "$key"
           done
           # 输出缓存状态

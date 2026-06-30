@@ -34,6 +34,33 @@ sync_with_tar() {
     tar "${tar_args[@]}" -C "$source_abs" -cf - . | tar -C "$build_copy_path" -xf -
 }
 
+sync_with_tar_preserving_cache() {
+    local source_abs="$1"
+    local build_copy_path="$2"
+    local cache_tmp
+    local item
+
+    cache_tmp=$(mktemp -d)
+
+    for item in .ccache staging_dir; do
+        if [[ -d "$build_copy_path/$item" ]]; then
+            mv "$build_copy_path/$item" "$cache_tmp/$item"
+        fi
+    done
+
+    rm -rf "$build_copy_path"
+    mkdir -p "$build_copy_path"
+    sync_with_tar "$source_abs" "$build_copy_path"
+
+    for item in .ccache staging_dir; do
+        if [[ -d "$cache_tmp/$item" ]]; then
+            mv "$cache_tmp/$item" "$build_copy_path/$item"
+        fi
+    done
+
+    rm -rf "$cache_tmp"
+}
+
 sync_with_rsync() {
     local source_abs="$1"
     local build_copy_path="$2"
@@ -99,13 +126,11 @@ main() {
         exit 0
     fi
 
-    rm -rf "$build_copy_path"
-    mkdir -p "$build_copy_path"
-
     if command -v rsync >/dev/null 2>&1; then
+        mkdir -p "$build_copy_path"
         sync_with_rsync "$source_abs" "$build_copy_path"
     else
-        sync_with_tar "$source_abs" "$build_copy_path"
+        sync_with_tar_preserving_cache "$source_abs" "$build_copy_path"
     fi
 
     write_source_lock "$repo_root" "$device" "$source_path" "$build_copy_path/.source-lock"
