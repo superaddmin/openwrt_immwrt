@@ -1,0 +1,39 @@
+category	name	url	branch_or_ref	owner	file	purpose
+upstream-source	immortalwrt	https://github.com/immortalwrt/immortalwrt.git	master	submodule	sources/immortalwrt	OpenWrt source tree for immortalwrt devices
+upstream-source	imm-nss	https://github.com/VIKINGYFY/immortalwrt.git	main	submodule	sources/imm-nss	NSS-enabled ImmortalWrt source tree
+upstream-source	libwrt	https://github.com/LiBwrt/openwrt-6.x.git	main-nss	submodule	sources/libwrt	LiBwrt NSS source tree
+upstream-source	libwrt-k612	https://github.com/LiBwrt/openwrt-6.x.git	25.12-nss	submodule	sources/libwrt-k612	LiBwrt 25.12 NSS source tree
+upstream-source	imm-mt798x	https://github.com/padavanonly/immortalwrt-mt798x.git	openwrt-21.02	submodule	sources/imm-mt798x	MT798x ImmortalWrt source tree
+upstream-source	airoha-wrt	https://github.com/ZqinKing/immortalwrt.git	w1701k	submodule	sources/airoha-wrt	Airoha W1701K source tree
+feed	openwrt_bandix	https://github.com/timsaya/openwrt-bandix.git	main	dynamic	wrt_core/modules/feeds.sh	Additional feed registered in feeds.conf
+feed	luci_app_bandix	https://github.com/timsaya/luci-app-bandix.git	main	dynamic	wrt_core/modules/feeds.sh	Additional feed registered in feeds.conf
+package-feed	kenzok8-small-package	https://github.com/kenzok8/small-package.git	default	dynamic	wrt_core/modules/packages.sh	Sparse custom feed packages
+package-feed	luci-app-mosdns	https://github.com/sbwml/luci-app-mosdns.git	v5	dynamic	wrt_core/modules/packages.sh	Sparse custom feed packages
+package-feed	openwrt-passwall	https://github.com/Openwrt-Passwall/openwrt-passwall.git	main	dynamic	wrt_core/modules/packages.sh	Sparse custom feed packages
+package-feed	openwrt-nikki	https://github.com/nikkinikki-org/OpenWrt-nikki.git	main	dynamic	wrt_core/modules/packages.sh	Sparse custom feed packages
+package	packages_lang_golang	https://github.com/sbwml/packages_lang_golang	26.x	dynamic	wrt_core/update.sh	Replace feeds/packages/lang/golang
+package	default-settings-fallback	https://github.com/immortalwrt/immortalwrt.git	default	dynamic	wrt_core/modules/packages.sh	Sparse fallback for package/emortal/default-settings
+package	luci-app-athena-led	https://github.com/NONGFAH/luci-app-athena-led.git	default	dynamic	wrt_core/modules/packages.sh	Additional LED LuCI app
+package	homeproxy	https://github.com/immortalwrt/homeproxy.git	default	dynamic	wrt_core/modules/packages.sh	Replace luci-app-homeproxy
+package	luci-app-timecontrol	https://github.com/sirpdboy/luci-app-timecontrol.git	default	dynamic	wrt_core/modules/packages.sh	Additional timecontrol LuCI app
+package	luci-app-adguardhome	https://github.com/ZqinKing/luci-app-adguardhome.git	default	dynamic	wrt_core/modules/packages.sh	Replace luci-app-adguardhome
+package	luci-app-lucky	https://github.com/gdy666/luci-app-lucky.git	default	dynamic	wrt_core/modules/packages.sh	Sparse update for lucky packages
+package	openwrt-smartdns	https://github.com/ZqinKing/openwrt-smartdns.git	default	dynamic	wrt_core/modules/packages.sh	Replace smartdns package
+package	luci-app-smartdns	https://github.com/pymumu/luci-app-smartdns.git	default	dynamic	wrt_core/modules/packages.sh	Replace luci-app-smartdns
+package	luci-app-diskman	https://github.com/lisaac/luci-app-diskman.git	default	dynamic	wrt_core/modules/packages.sh	Sparse update for luci-app-diskman
+package	luci-lib-docker	https://github.com/lisaac/luci-lib-docker.git	default	dynamic	wrt_core/modules/packages.sh	Sparse update for luci-lib-docker
+package	luci-app-dockerman	https://github.com/lisaac/luci-app-dockerman.git	default	dynamic	wrt_core/modules/packages.sh	Sparse update for luci-app-dockerman
+package	luci-app-quickfile	https://github.com/sbwml/luci-app-quickfile.git	default	dynamic	wrt_core/modules/packages.sh	Add quickfile package
+package	luci-theme-argon	https://github.com/ZqinKing/luci-theme-argon.git	default	dynamic	wrt_core/modules/packages.sh	Replace argon theme
+package	quectel-cm	https://github.com/Carton32/quectel-CM.git	PKG_VERSION	dynamic	wrt_core/modules/system.sh	Rewrite quectel-cm package source
+raw	ath11k-firmware-makefile	https://raw.githubusercontent.com/VIKINGYFY/immortalwrt/refs/heads/main/package/firmware/ath11k-firmware/Makefile	main	dynamic	wrt_core/modules/system.sh	Download replacement ath11k firmware Makefile
+raw	tcping-makefile	https://raw.githubusercontent.com/Openwrt-Passwall/openwrt-passwall-packages/refs/heads/main/tcping/Makefile	main	dynamic	wrt_core/modules/system.sh	Download replacement tcping Makefile
+raw	istore-backend	https://gist.githubusercontent.com/puteulanus/1c180fae6bccd25e57eb6d30b7aa28aa/raw/istore_backend.lua	raw	dynamic	wrt_core/modules/system.sh	Download quickstart backend fix
+binary-feed	immortalwrt-base	https://downloads.immortalwrt.org/releases/24.10-SNAPSHOT/packages/aarch64_cortex-a53/base/	24.10-SNAPSHOT	dynamic	wrt_core/modules/system.sh	Runtime opkg distfeed
+binary-feed	immortalwrt-luci	https://downloads.immortalwrt.org/releases/24.10-SNAPSHOT/packages/aarch64_cortex-a53/luci/	24.10-SNAPSHOT	dynamic	wrt_core/modules/system.sh	Runtime opkg distfeed
+binary-feed	immortalwrt-packages	https://downloads.immortalwrt.org/releases/24.10-SNAPSHOT/packages/aarch64_cortex-a53/packages/	24.10-SNAPSHOT	dynamic	wrt_core/modules/system.sh	Runtime opkg distfeed
+binary-feed	immortalwrt-routing	https://downloads.immortalwrt.org/releases/24.10-SNAPSHOT/packages/aarch64_cortex-a53/routing/	24.10-SNAPSHOT	dynamic	wrt_core/modules/system.sh	Runtime opkg distfeed
+binary-feed	immortalwrt-telephony	https://downloads.immortalwrt.org/releases/24.10-SNAPSHOT/packages/aarch64_cortex-a53/telephony/	24.10-SNAPSHOT	dynamic	wrt_core/modules/system.sh	Runtime opkg distfeed
+release-asset	v2fly-geoip	https://github.com/v2fly/geoip/releases/download/	GEOIP_VER	dynamic	wrt_core/modules/system.sh	Fetch geoip checksum files
+api	github-releases	https://api.github.com/repos/	runtime-derived	dynamic	wrt_core/modules/packages.sh	Resolve package versions from package Makefiles
+runtime-package-source	package-source-url	runtime-derived	runtime-derived	dynamic	wrt_core/modules/packages.sh	Fetch package tarballs from package Makefiles to update hashes
