@@ -149,6 +149,9 @@ prepare_build_dependencies() {
     echo "Preparing OpenWrt toolchain..."
     run_openwrt_make toolchain/install
 
+    echo "Preparing OpenWrt target artifacts..."
+    run_openwrt_make target/compile
+
     popd >/dev/null
 }
 

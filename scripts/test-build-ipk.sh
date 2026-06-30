@@ -113,6 +113,52 @@ test_main_prepares_dependencies_before_compiling() {
     rm -rf "$test_artifact_dir"
 }
 
+test_prepare_build_dependencies_runs_openwrt_prerequisites() {
+    local tmp_dir
+    local log_file
+
+    tmp_dir=$(mktemp -d)
+    log_file="$tmp_dir/calls.log"
+
+    (
+        set -euo pipefail
+
+        nproc() {
+            echo 2
+        }
+
+        run_openwrt_make() {
+            echo "run_openwrt_make:$1:$(pwd)" >>"$log_file"
+        }
+
+        prepare_build_dependencies "$tmp_dir"
+    )
+
+    assert_file_contains "$log_file" "run_openwrt_make:tools/install:$tmp_dir" \
+        "prepare_build_dependencies should install OpenWrt host tools"
+    assert_file_contains "$log_file" "run_openwrt_make:toolchain/install:$tmp_dir" \
+        "prepare_build_dependencies should install OpenWrt toolchain"
+    assert_file_contains "$log_file" "run_openwrt_make:target/compile:$tmp_dir" \
+        "prepare_build_dependencies should compile OpenWrt target artifacts"
+
+    local sequence
+    sequence=$(awk '
+        /run_openwrt_make:tools\/install:/ {tools = NR}
+        /run_openwrt_make:toolchain\/install:/ {toolchain = NR}
+        /run_openwrt_make:target\/compile:/ {target = NR}
+        END {
+            if (tools > 0 && toolchain > tools && target > toolchain) {
+                print "ok"
+            }
+        }
+    ' "$log_file")
+
+    assert_eq "ok" "$sequence" \
+        "OpenWrt target artifacts should be prepared after tools and toolchain"
+
+    rm -rf "$tmp_dir"
+}
+
 run_tests() {
     local targets=()
 
@@ -177,6 +223,7 @@ run_tests() {
         exit 1
     fi
 
+    test_prepare_build_dependencies_runs_openwrt_prerequisites
     test_main_prepares_dependencies_before_compiling
 
     echo "build-ipk tests passed"
