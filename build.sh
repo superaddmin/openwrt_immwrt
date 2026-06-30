@@ -196,7 +196,7 @@ prepare_container_image() {
     cat > "$container_tmp_Dockerfile" <<EOF
 FROM $base_image
 USER root
-RUN apt-get update && apt-get install -y sudo git jq build-essential cmake g++ clang bison flex libelf-dev libncurses5-dev python3-distutils zlib1g-dev python3 pkg-config libssl-dev
+RUN apt-get update && apt-get install -y sudo git jq rsync build-essential cmake g++ clang bison flex libelf-dev libncurses5-dev python3-distutils zlib1g-dev python3 pkg-config libssl-dev
 USER $container_default_user
 RUN git config --global pull.rebase false
 RUN git config --global advice.detachedHead false
@@ -273,9 +273,14 @@ REPO_BRANCH=${REPO_BRANCH:-main}
 BUILD_DIR=$(read_ini_by_key "BUILD_DIR")
 COMMIT_HASH=$(read_ini_by_key "COMMIT_HASH")
 COMMIT_HASH=${COMMIT_HASH:-none}
+SOURCE_BUILD_DIR=$BUILD_DIR
 
-if [[ -d action_build ]]; then
+if [[ ${WRT_USE_DYNAMIC_CLONE:-0} == "1" ]]; then
+    echo "Using dynamic clone mode for $Dev"
+else
+    "$REPO_ROOT/scripts/prepare-source.sh" "$Dev"
     BUILD_DIR="action_build"
+    export WRT_LOCAL_SOURCE=1
 fi
 
 "$BASE_PATH/update.sh" "$REPO_URL" "$REPO_BRANCH" "$BUILD_DIR" "$COMMIT_HASH"

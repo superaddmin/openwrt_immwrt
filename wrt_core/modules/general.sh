@@ -2,6 +2,15 @@
 # Module: General Preparation
 
 clone_repo() {
+    if [[ ${WRT_LOCAL_SOURCE:-0} == "1" ]]; then
+        if [[ ! -d $BUILD_DIR ]]; then
+            echo "Build directory $BUILD_DIR does not exist in local source mode" >&2
+            exit 1
+        fi
+        echo "Using prepared local source tree: $BUILD_DIR"
+        return
+    fi
+
     if [[ ! -d $BUILD_DIR ]]; then
         echo "克隆仓库: $REPO_URL 分支: $REPO_BRANCH"
         if ! git_retry clone --depth 1 -b "$REPO_BRANCH" "$REPO_URL" "$BUILD_DIR"; then
@@ -34,6 +43,11 @@ clean_up() {
 }
 
 reset_feeds_conf() {
+    if [[ ${WRT_LOCAL_SOURCE:-0} == "1" ]]; then
+        echo "Skipping git reset/pull in local source mode"
+        return
+    fi
+
     git_retry reset --hard "origin/$REPO_BRANCH"
     git_retry clean -f -d
     git_retry pull

@@ -38,6 +38,7 @@ source "$SCRIPT_DIR/modules/cups.sh"
 source "$SCRIPT_DIR/modules/docker.sh"
 
 
+# In WRT_LOCAL_SOURCE=1 mode, clone_repo/reset_feeds_conf operate against the prepared build copy.
 main() {
     clone_repo
     clean_up
