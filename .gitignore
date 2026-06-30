@@ -1,4 +1,5 @@
 firmware/
+action_build/
 .pc/
 libwrt/
 test/
@@ -31,3 +32,19 @@ wrt_core/deconfig/test.config
 .taskmaster/
 .sisyphus/
 AGENTS.md
+!sources/
+!sources/immortalwrt/
+!sources/imm-nss/
+!sources/libwrt/
+!sources/libwrt-k612/
+!sources/imm-mt798x/
+!sources/airoha-wrt/
+metadata/sources/*.runtime.lock
+patches/local/**/*.tmp
+sources/*/.ccache/
+sources/*/bin/
+sources/*/build_dir/
+sources/*/dl/
+sources/*/logs/
+sources/*/staging_dir/
+sources/*/tmp/

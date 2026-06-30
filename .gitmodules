@@ -1,0 +1,24 @@
+[submodule "sources/immortalwrt"]
+	path = sources/immortalwrt
+	url = https://github.com/immortalwrt/immortalwrt.git
+	branch = master
+[submodule "sources/imm-nss"]
+	path = sources/imm-nss
+	url = https://github.com/VIKINGYFY/immortalwrt.git
+	branch = main
+[submodule "sources/libwrt"]
+	path = sources/libwrt
+	url = https://github.com/LiBwrt/openwrt-6.x.git
+	branch = main-nss
+[submodule "sources/libwrt-k612"]
+	path = sources/libwrt-k612
+	url = https://github.com/LiBwrt/openwrt-6.x.git
+	branch = 25.12-nss
+[submodule "sources/imm-mt798x"]
+	path = sources/imm-mt798x
+	url = https://github.com/padavanonly/immortalwrt-mt798x.git
+	branch = openwrt-21.02
+[submodule "sources/airoha-wrt"]
+	path = sources/airoha-wrt
+	url = https://github.com/ZqinKing/immortalwrt.git
+	branch = w1701k

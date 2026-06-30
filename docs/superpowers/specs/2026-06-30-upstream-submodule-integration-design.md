@@ -31,7 +31,7 @@ sources/
   immortalwrt/      # https://github.com/immortalwrt/immortalwrt.git master
   imm-nss/          # https://github.com/VIKINGYFY/immortalwrt.git main
   libwrt/           # https://github.com/LiBwrt/openwrt-6.x.git main-nss
-  libwrt-k612/      # https://github.com/LiBwrt/openwrt-6.x.git k6.12-nss
+  libwrt-k612/      # https://github.com/LiBwrt/openwrt-6.x.git 25.12-nss
   imm-mt798x/       # https://github.com/padavanonly/immortalwrt-mt798x.git openwrt-21.02
   airoha-wrt/       # https://github.com/ZqinKing/immortalwrt.git w1701k
 ```

@@ -89,7 +89,7 @@ Run:
 git submodule add --depth 1 -b master https://github.com/immortalwrt/immortalwrt.git sources/immortalwrt
 git submodule add --depth 1 -b main https://github.com/VIKINGYFY/immortalwrt.git sources/imm-nss
 git submodule add --depth 1 -b main-nss https://github.com/LiBwrt/openwrt-6.x.git sources/libwrt
-git submodule add --depth 1 -b k6.12-nss https://github.com/LiBwrt/openwrt-6.x.git sources/libwrt-k612
+git submodule add --depth 1 -b 25.12-nss https://github.com/LiBwrt/openwrt-6.x.git sources/libwrt-k612
 git submodule add --depth 1 -b openwrt-21.02 https://github.com/padavanonly/immortalwrt-mt798x.git sources/imm-mt798x
 git submodule add --depth 1 -b w1701k https://github.com/ZqinKing/immortalwrt.git sources/airoha-wrt
 ```
