@@ -190,13 +190,18 @@ copy_matching_ipks() {
     local path
     local rel_path
     local matched=0
+    local require_newer=1
+
+    if [[ ${#patterns[@]} -gt 0 ]]; then
+        require_newer=0
+    fi
 
     mapfile -t all_after < <(list_ipk_files "$build_dir")
 
     for path in "${all_after[@]}"; do
         rel_path="${path#"$build_dir/bin/"}"
 
-        if [[ ! "$path" -nt "$stamp_file" ]]; then
+        if [[ $require_newer -eq 1 && ! "$path" -nt "$stamp_file" ]]; then
             continue
         fi
 
@@ -218,6 +223,18 @@ copy_matching_ipks() {
 
     if [[ $matched -ne 1 ]]; then
         echo "No .ipk artifacts matched the current build output." >&2
+        if [[ ${#patterns[@]} -gt 0 ]]; then
+            printf 'Requested artifact patterns:\n' >&2
+            printf '  %s\n' "${patterns[@]}" >&2
+        fi
+        if [[ ${#all_after[@]} -gt 0 ]]; then
+            printf 'Available .ipk artifacts under %s/bin:\n' "$build_dir" >&2
+            for path in "${all_after[@]}"; do
+                printf '  %s\n' "${path#"$build_dir/bin/"}" >&2
+            done
+        else
+            printf 'No .ipk artifacts found under %s/bin.\n' "$build_dir" >&2
+        fi
         return 1
     fi
 }

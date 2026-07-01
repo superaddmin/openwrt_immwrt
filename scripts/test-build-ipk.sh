@@ -45,6 +45,43 @@ assert_file_contains() {
     fi
 }
 
+assert_file_exists() {
+    local file="$1"
+    local message="$2"
+
+    if [[ ! -f "$file" ]]; then
+        echo "ASSERT_FILE_EXISTS failed: $message" >&2
+        echo "  missing file: $file" >&2
+        exit 1
+    fi
+}
+
+test_copy_matching_ipks_collects_explicit_patterns_without_timestamp_filter() {
+    local tmp_dir
+    local build_dir
+    local artifact_dir
+    local stamp_file
+    local ipk_file
+
+    tmp_dir=$(mktemp -d)
+    build_dir="$tmp_dir/build"
+    artifact_dir="$tmp_dir/artifacts"
+    stamp_file="$tmp_dir/stamp"
+    ipk_file="$build_dir/bin/packages/x86_64/base/luci-app-timecontrol_1_all.ipk"
+
+    mkdir -p "$(dirname "$ipk_file")" "$artifact_dir"
+    printf 'ipk\n' >"$ipk_file"
+    touch -t 202001010000 "$ipk_file"
+    touch -t 202001020000 "$stamp_file"
+
+    copy_matching_ipks "$build_dir" "$artifact_dir" "$stamp_file" "*/luci-app-timecontrol_*.ipk"
+
+    assert_file_exists "$artifact_dir/luci-app-timecontrol_1_all.ipk" \
+        "explicit artifact patterns should collect matching IPKs even when OpenWrt preserves older mtimes"
+
+    rm -rf "$tmp_dir"
+}
+
 test_main_prepares_dependencies_before_compiling() {
     local tmp_dir
     local test_device
@@ -224,6 +261,7 @@ run_tests() {
     fi
 
     test_prepare_build_dependencies_runs_openwrt_prerequisites
+    test_copy_matching_ipks_collects_explicit_patterns_without_timestamp_filter
     test_main_prepares_dependencies_before_compiling
 
     echo "build-ipk tests passed"
