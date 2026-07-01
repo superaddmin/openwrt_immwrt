@@ -161,6 +161,35 @@ list_ipk_files() {
     find "$build_dir/bin" -type f -name '*.ipk' | sort
 }
 
+package_name_from_target() {
+    local target="$1"
+
+    basename "$target"
+}
+
+select_target_packages() {
+    local build_dir="$1"
+    shift
+    local config_file="$build_dir/.config"
+    local target
+    local package_name
+
+    if [[ ! -f "$config_file" ]]; then
+        echo "OpenWrt config not found: $config_file" >&2
+        return 1
+    fi
+
+    for target in "$@"; do
+        package_name=$(package_name_from_target "$target")
+        echo "Selecting CONFIG_PACKAGE_$package_name=m"
+        printf 'CONFIG_PACKAGE_%s=m\n' "$package_name" >>"$config_file"
+    done
+
+    pushd "$build_dir" >/dev/null
+    make defconfig
+    popd >/dev/null
+}
+
 compile_targets() {
     local build_dir="$1"
     shift
@@ -301,6 +330,7 @@ main() {
     stamp_file=$(mktemp)
     trap 'rm -f "$stamp_file"' RETURN
 
+    select_target_packages "$build_dir" "${targets[@]}"
     prepare_build_dependencies "$build_dir"
     compile_targets "$build_dir" "${targets[@]}"
     copy_matching_ipks "$build_dir" "$artifact_dir" "$stamp_file" "${patterns[@]}"

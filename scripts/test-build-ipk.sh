@@ -82,6 +82,102 @@ test_copy_matching_ipks_collects_explicit_patterns_without_timestamp_filter() {
     rm -rf "$tmp_dir"
 }
 
+test_select_target_packages_marks_targets_as_modules() {
+    local tmp_dir
+    local log_file
+
+    tmp_dir=$(mktemp -d)
+    log_file="$tmp_dir/calls.log"
+    printf '# base config\n' >"$tmp_dir/.config"
+
+    (
+        set -euo pipefail
+
+        make() {
+            echo "make:$*:$(pwd)" >>"$log_file"
+        }
+
+        select_target_packages "$tmp_dir" \
+            package/luci-app-timecontrol \
+            package/feeds/custom_feed/lucky
+    )
+
+    assert_file_contains "$tmp_dir/.config" "CONFIG_PACKAGE_luci-app-timecontrol=m" \
+        "select_target_packages should select plain package targets as modules"
+    assert_file_contains "$tmp_dir/.config" "CONFIG_PACKAGE_lucky=m" \
+        "select_target_packages should derive package names from nested feed targets"
+    assert_file_contains "$log_file" "make:defconfig:$tmp_dir" \
+        "select_target_packages should refresh OpenWrt config after selecting packages"
+
+    rm -rf "$tmp_dir"
+}
+
+test_main_selects_package_configs_before_preparing_dependencies() {
+    local tmp_dir
+    local test_device
+    local test_artifact_dir
+
+    tmp_dir=$(mktemp -d)
+    test_device="test-ipk-select-device-$$"
+    test_artifact_dir="$REPO_ROOT/ipk_artifacts/$test_device"
+
+    (
+        set -euo pipefail
+
+        local log_file="$tmp_dir/calls.log"
+
+        ensure_action_build_ready() {
+            echo "ensure_action_build_ready:$1" >>"$log_file"
+            mkdir -p "$REPO_ROOT/action_build/bin"
+        }
+
+        select_target_packages() {
+            local build_dir="$1"
+            shift
+            echo "select_target_packages:$build_dir:$*" >>"$log_file"
+        }
+
+        prepare_build_dependencies() {
+            echo "prepare_build_dependencies:$1" >>"$log_file"
+        }
+
+        compile_targets() {
+            local build_dir="$1"
+            shift
+            echo "compile_targets:$build_dir:$*" >>"$log_file"
+        }
+
+        copy_matching_ipks() {
+            local artifact_dir="$2"
+            touch "$artifact_dir/luci-app-timecontrol_1_all.ipk"
+        }
+
+        write_metadata_files() {
+            echo "write_metadata_files:$*" >>"$log_file"
+        }
+
+        WRT_IPK_TARGETS=""
+        WRT_IPK_ARTIFACT_PATTERNS="luci-app-timecontrol_*.ipk"
+        main "$test_device" luci-app-timecontrol
+
+        assert_file_contains "$log_file" "select_target_packages:$REPO_ROOT/action_build:package/luci-app-timecontrol" \
+            "main should select requested packages before compiling them"
+
+        local sequence
+        sequence=$(awk '
+            /^select_target_packages:/ {select = NR}
+            /^prepare_build_dependencies:/ {prepare = NR}
+            END {if (select > 0 && prepare > 0 && select < prepare) print "ok"}
+        ' "$log_file")
+
+        assert_eq "ok" "$sequence" \
+            "target packages should be selected before OpenWrt dependencies are prepared"
+    )
+
+    rm -rf "$tmp_dir"
+    rm -rf "$test_artifact_dir"
+}
+
 test_main_prepares_dependencies_before_compiling() {
     local tmp_dir
     local test_device
@@ -118,6 +214,12 @@ test_main_prepares_dependencies_before_compiling() {
             shift 3
             echo "copy_matching_ipks:$build_dir:$artifact_dir:$stamp_file:$*" >>"$log_file"
             touch "$artifact_dir/luci-app-timecontrol_1_all.ipk"
+        }
+
+        select_target_packages() {
+            local build_dir="$1"
+            shift
+            echo "select_target_packages:$build_dir:$*" >>"$log_file"
         }
 
         write_metadata_files() {
@@ -262,6 +364,8 @@ run_tests() {
 
     test_prepare_build_dependencies_runs_openwrt_prerequisites
     test_copy_matching_ipks_collects_explicit_patterns_without_timestamp_filter
+    test_select_target_packages_marks_targets_as_modules
+    test_main_selects_package_configs_before_preparing_dependencies
     test_main_prepares_dependencies_before_compiling
 
     echo "build-ipk tests passed"
